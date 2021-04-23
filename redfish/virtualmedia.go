@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"strconv"
+	"strings"
 
 	"github.com/stmcginnis/gofish/common"
 )
@@ -156,10 +158,23 @@ func (virtualmedia *VirtualMedia) UnmarshalJSON(b []byte) error {
 	}
 
 	*virtualmedia = VirtualMedia(t.temp)
+	// extract version from: #VirtualMedia.v1_3_2.VirtualMedia
+	ty := strings.Split(virtualmedia.ODataType, ".")
+	vers := strings.ReplaceAll(ty[1], "_", "")
+	v, err := strconv.Atoi(vers)
+	if err != nil {
+		return err
+	}
+	// if version > 1.1.0 it should support actions. if no action present we fall back to the virtualmedia target
+	if v > 110 && t.Actions.EjectMedia.Target == "" {
+		virtualmedia.ejectMediaTarget = virtualmedia.ODataID
+		virtualmedia.insertMediaTarget = virtualmedia.ODataID
 
-	// Extract the links to other entities for later
-	virtualmedia.ejectMediaTarget = t.Actions.EjectMedia.Target
-	virtualmedia.insertMediaTarget = t.Actions.InsertMedia.Target
+	} else {
+		// Extract the links to other entities for later
+		virtualmedia.ejectMediaTarget = t.Actions.EjectMedia.Target
+		virtualmedia.insertMediaTarget = t.Actions.InsertMedia.Target
+	}
 
 	virtualmedia.SupportsMediaEject = (virtualmedia.ejectMediaTarget != "")
 	virtualmedia.SupportsMediaInsert = (virtualmedia.insertMediaTarget != "")
