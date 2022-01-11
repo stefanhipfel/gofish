@@ -222,23 +222,17 @@ func (virtualmedia *VirtualMedia) EjectMedia() error {
 }
 
 // InsertMedia sends a request to insert virtual media.
-func (virtualmedia *VirtualMedia) InsertMedia(image string, inserted, writeProtected bool) error {
+func (virtualmedia *VirtualMedia) InsertMedia(image, method string, body interface{}) error {
 	if !virtualmedia.SupportsMediaInsert {
 		return errors.New("redfish service does not support VirtualMedia.InsertMedia calls")
 	}
+	
+	if method == "PATCH" {
+ 		_, err := virtualmedia.Client.Patch(virtualmedia.insertMediaTarget, body)
+ 		return err
+ 	}
 
-	type temp struct {
-		Image          string
-		Inserted       bool
-		WriteProtected bool
-	}
-	t := temp{
-		Image:          image,
-		Inserted:       inserted,
-		WriteProtected: writeProtected,
-	}
-
-	_, err := virtualmedia.Client.Post(virtualmedia.insertMediaTarget, t)
+	_, err := virtualmedia.Client.Post(virtualmedia.insertMediaTarget, body)
 	return err
 }
 
